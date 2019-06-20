@@ -53,7 +53,24 @@ class MockWebServer {
 		}
 	}
 
-	/**
+    protected function execInBackground($cmd) {
+        if (substr(php_uname(), 0, 7) == "Windows"){
+            pclose(popen("start /B ". $cmd, "r"));
+            sleep(3);
+//            exec('netstat -aon|find /i ":8001"', $out);
+//            $cmdstr = 'netstat -aon|find /i "' . $this->host . ':' . $this->port . '"';
+//            exec($cmdstr, $out);
+            exec(sprintf('netstat -aon|find /i "%s:%d"',$this->host, $this->port), $out);
+//            exec('netstat -aon|find /i "' . $this->host . ':' . $this->port . '"', $out);
+            $outarray = preg_split("/[\s]+/", $out[0]);
+            return $outarray[5];
+        }
+        else {
+            return exec($cmd . " > /dev/null &");
+        }
+    }
+
+    /**
 	 * Start the Web Server on the selected port and host
 	 */
 	public function start() {
@@ -76,17 +93,20 @@ class MockWebServer {
 
 		InternalServer::incrementRequestCounter($this->tmpDir, 0);
 
-		$this->pid = exec(
-			$fullCmd,
-			$o,
-			$ret
-		);
+        $this->pid = self::execInBackground($cmd);
+
+//        $this->pid = exec(
+//			$fullCmd,
+//			$o,
+//			$ret
+//		);
+
 
 		if( !ctype_digit($this->pid) ) {
 			throw new Exceptions\ServerException("Error starting server, received '{$this->pid}', expected int PID");
 		}
 
-		sleep(1); // just to make sure it's fully started up, maybe not necessary
+		sleep(3); // just to make sure it's fully started up, maybe not necessary
 
 		if( !$this->isRunning() ) {
 			throw new Exceptions\ServerException("Failed to start server. Is something already running on port {$this->port}?");
@@ -125,8 +145,15 @@ class MockWebServer {
 	 */
 	public function stop() {
 		if( $this->started ) {
-			exec(sprintf('kill %d',
-				$this->pid));
+            if (substr(php_uname(), 0, 7) == "Windows"){
+                exec(sprintf('taskkill /PID %d /F',
+                    $this->pid));
+            }
+            else {
+                exec(sprintf('kill %d',
+                    $this->pid));
+            }
+
 		}
 
 		$this->started = false;
