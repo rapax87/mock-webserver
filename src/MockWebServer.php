@@ -57,11 +57,10 @@ class MockWebServer {
         if (substr(php_uname(), 0, 7) == "Windows"){
             pclose(popen("start /B ". $cmd, "r"));
             sleep(3);
-//            exec('netstat -aon|find /i ":8001"', $out);
-//            $cmdstr = 'netstat -aon|find /i "' . $this->host . ':' . $this->port . '"';
-//            exec($cmdstr, $out);
-            exec(sprintf('netstat -aon|find /i "%s:%d"',$this->host, $this->port), $out);
+//            exec(sprintf('netstat -aon|find /i "%s:%d"|find /i "LISTENING"',$this->host, $this->port), $out);
+            exec(sprintf('netstat -aon|grep "%s:%d"|grep "LISTENING"',$this->host, $this->port), $out);
 //            exec('netstat -aon|find /i "' . $this->host . ':' . $this->port . '"', $out);
+
             $outarray = preg_split("/[\s]+/", $out[0]);
             return $outarray[5];
         }
